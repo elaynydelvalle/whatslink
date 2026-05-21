@@ -72,18 +72,5 @@ jobs:
             **/storage/framework/cache/data/**
             **/storage/logs/**
 
-      - name: Rodar migrations no servidor
-        uses: appleboy/ssh-action@v1.0.3
-        if: ${{ secrets.SSH_HOST != '' }}
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          script: |
-            cd ${{ secrets.REMOTE_PATH }}
-            php artisan migrate --force
-            php artisan config:cache
-            php artisan route:cache
-
       - name: ✅ Deploy concluído
         run: echo "Deploy realizado com sucesso!"
