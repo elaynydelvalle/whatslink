@@ -1,0 +1,89 @@
+name: Deploy para HostGator
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Digite DEPLOY para confirmar o envio ao servidor'
+        required: true
+        default: ''
+
+jobs:
+  deploy:
+    name: Publicar no HostGator
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Verificar confirmação
+        if: github.event.inputs.confirm != 'DEPLOY'
+        run: |
+          echo "❌ Confirmação inválida. Digite exatamente DEPLOY para prosseguir."
+          exit 1
+
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, openssl, zip, curl
+
+      - name: Instalar dependências (sem dev)
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+
+      - name: Criar .env de produção
+        run: |
+          cp .env.example .env
+          sed -i 's/APP_ENV=local/APP_ENV=production/'      .env
+          sed -i 's/APP_DEBUG=true/APP_DEBUG=false/'        .env
+          sed -i 's|APP_URL=http://localhost:8000|APP_URL=${{ secrets.APP_URL }}|' .env
+          sed -i 's/DB_CONNECTION=sqlite/DB_CONNECTION=mysql/'                    .env
+          sed -i 's/# DB_HOST=127.0.0.1/DB_HOST=${{ secrets.DB_HOST }}/'         .env
+          sed -i 's/# DB_PORT=3306/DB_PORT=3306/'                                .env
+          sed -i 's/# DB_DATABASE=laravel/DB_DATABASE=${{ secrets.DB_DATABASE }}/' .env
+          sed -i 's/# DB_USERNAME=root/DB_USERNAME=${{ secrets.DB_USERNAME }}/'  .env
+          sed -i 's/# DB_PASSWORD=/DB_PASSWORD=${{ secrets.DB_PASSWORD }}/'      .env
+          echo "APP_KEY=${{ secrets.APP_KEY }}" >> .env
+
+      - name: Gerar chave da aplicação (se necessário)
+        run: php artisan key:generate --force
+
+      - name: Otimizar para produção
+        run: |
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+
+      - name: Deploy via FTP para HostGator
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ${{ secrets.FTP_PATH }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/tests/**
+            **/.env.example
+            **/storage/framework/sessions/**
+            **/storage/framework/cache/data/**
+            **/storage/logs/**
+
+      - name: Rodar migrations no servidor
+        uses: appleboy/ssh-action@v1.0.3
+        if: ${{ secrets.SSH_HOST != '' }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          script: |
+            cd ${{ secrets.REMOTE_PATH }}
+            php artisan migrate --force
+            php artisan config:cache
+            php artisan route:cache
+
+      - name: ✅ Deploy concluído
+        run: echo "Deploy realizado com sucesso!"
