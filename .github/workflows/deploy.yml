@@ -69,8 +69,8 @@ jobs:
           php artisan route:cache
           php artisan view:cache
 
-      - name: Instalar lftp
-        run: sudo apt-get install -y lftp
+      - name: Instalar ncftp
+        run: sudo apt-get install -y ncftp
 
       - name: Deploy via FTP para HostGator
         env:
@@ -79,8 +79,7 @@ jobs:
           FTP_PASS: ${{ secrets.FTP_PASSWORD }}
           FTP_PATH: ${{ secrets.FTP_PATH }}
         run: |
-          python3 -c "import os; u=os.environ['FTP_USER']; p=os.environ['FTP_PASS']; s=os.environ['FTP_SERVER']; d=os.environ['FTP_PATH']; open('/tmp/lftp.txt','w').write('set ftp:ssl-allow no\nset net:timeout 30\nopen -u \\''+u+'\\',\\''+p+'\\' ftp://'+s+'\nmkdir -p '+d+'\nmirror -R --delete --verbose --exclude-glob .git* --exclude-glob node_modules --exclude-glob tests --exclude-glob storage/logs . '+d+'\nquit\n')"
-          lftp -f /tmp/lftp.txt
+          ncftpput -R -v -u "$FTP_USER" -p "$FTP_PASS" "$FTP_SERVER" "$FTP_PATH" .
 
       - name: ✅ Deploy concluído
         run: echo "Deploy realizado com sucesso!"
