@@ -81,13 +81,8 @@ jobs:
         run: |
           echo "machine $FTP_SERVER login $FTP_USER password $FTP_PASS" > ~/.netrc
           chmod 600 ~/.netrc
-          lftp $FTP_SERVER <<FTPEOF
-          set ftp:ssl-allow no
-          set net:timeout 30
-          set net:max-retries 3
-          mirror -R --delete --verbose --exclude-glob .git* --exclude-glob node_modules --exclude-glob tests --exclude-glob storage/logs . $FTP_PATH
-          quit
-FTPEOF
+          printf 'set ftp:ssl-allow no\nset net:timeout 30\nset net:max-retries 3\nmirror -R --delete --verbose --exclude-glob .git* --exclude-glob node_modules --exclude-glob tests --exclude-glob storage/logs . %s\nquit\n' "$FTP_PATH" > /tmp/lftp.txt
+          lftp $FTP_SERVER -f /tmp/lftp.txt
 
       - name: ✅ Deploy concluído
         run: echo "Deploy realizado com sucesso!"
