@@ -79,14 +79,15 @@ jobs:
           FTP_PASS: ${{ secrets.FTP_PASSWORD }}
           FTP_PATH: ${{ secrets.FTP_PATH }}
         run: |
-          cat > /tmp/lftp-script.txt <<EOF
+          echo "machine $FTP_SERVER login $FTP_USER password $FTP_PASS" > ~/.netrc
+          chmod 600 ~/.netrc
+          lftp $FTP_SERVER <<FTPEOF
           set ftp:ssl-allow no
           set net:timeout 30
           set net:max-retries 3
           mirror -R --delete --verbose --exclude-glob .git* --exclude-glob node_modules --exclude-glob tests --exclude-glob storage/logs . $FTP_PATH
           quit
-          EOF
-          lftp -u "$FTP_USER","$FTP_PASS" ftp://$FTP_SERVER -f /tmp/lftp-script.txt
+FTPEOF
 
       - name: ✅ Deploy concluído
         run: echo "Deploy realizado com sucesso!"
