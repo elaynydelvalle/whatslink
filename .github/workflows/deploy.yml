@@ -69,17 +69,25 @@ jobs:
           php artisan route:cache
           php artisan view:cache
 
-      - name: Instalar ncftp
-        run: sudo apt-get install -y ncftp
-
       - name: Deploy via FTP para HostGator
-        env:
-          FTP_SERVER: ${{ secrets.FTP_SERVER }}
-          FTP_USER: ${{ secrets.FTP_USERNAME }}
-          FTP_PASS: ${{ secrets.FTP_PASSWORD }}
-          FTP_PATH: ${{ secrets.FTP_PATH }}
-        run: |
-          ncftpput -R -v -u "$FTP_USER" -p "$FTP_PASS" "$FTP_SERVER" "$FTP_PATH" .
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: ${{ secrets.FTP_PATH }}
+          protocol: ftp
+          port: 21
+          security: loose
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/tests/**
+            **/.env.example
+            **/storage/logs/**
+            **/storage/framework/sessions/**
+            **/storage/framework/cache/data/**
 
       - name: ✅ Deploy concluído
         run: echo "Deploy realizado com sucesso!"
