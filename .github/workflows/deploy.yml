@@ -76,8 +76,9 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: ${{ secrets.FTP_PATH }}
-          protocol: ftps
+          protocol: ftp
           port: 21
+          security: loose
           exclude: |
             **/.git*
             **/.git*/**
