@@ -79,7 +79,11 @@ jobs:
           FTP_PASS: ${{ secrets.FTP_PASSWORD }}
           FTP_PATH: ${{ secrets.FTP_PATH }}
         run: |
-          printf 'set ftp:ssl-allow no\nset net:timeout 30\nset net:max-retries 3\nopen -u "%s","%s" ftp://%s\nmkdir -p %s\nmirror -R --delete --verbose --exclude-glob .git* --exclude-glob node_modules --exclude-glob tests --exclude-glob storage/logs . %s\nquit\n' "$FTP_USER" "$FTP_PASS" "$FTP_SERVER" "$FTP_PATH" "$FTP_PATH" > /tmp/lftp.txt
+          python3 -c "
+import os
+u=os.environ['FTP_USER']; p=os.environ['FTP_PASS']; s=os.environ['FTP_SERVER']; d=os.environ['FTP_PATH']
+open('/tmp/lftp.txt','w').write('set ftp:ssl-allow no\nset net:timeout 30\nopen -u '+u+','+p+' ftp://'+s+'\nmkdir -p '+d+'\nmirror -R --delete --verbose --exclude-glob .git* --exclude-glob node_modules --exclude-glob tests --exclude-glob storage/logs . '+d+'\nquit\n')
+"
           lftp -f /tmp/lftp.txt
 
       - name: ✅ Deploy concluído
