@@ -83,6 +83,17 @@ jobs:
             --exclude "deploy.zip"
           echo "ZIP criado: $(du -sh deploy.zip | cut -f1)"
 
+      - name: Limpar ZIPs antigos do servidor
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
+          CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
+        run: |
+          curl -sk -H "Authorization: cpanel $CPANEL_USER:$CPANEL_TOKEN" \
+            "https://$CPANEL_HOST:2083/execute/Fileman/delete_files" \
+            --data-urlencode "dir=/home1/$CPANEL_USER" \
+            --data-urlencode "files-0=deploy.zip" > /dev/null || true
+
       - name: Upload do ZIP via cPanel API
         env:
           CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
