@@ -32,7 +32,7 @@ jobs:
         run: |
           RESPONSE=$(curl -sk -H "Authorization: cpanel $CPANEL_USER:$CPANEL_TOKEN" \
             "https://$CPANEL_HOST:2083/execute/VersionControl/update" \
-            --data-urlencode "repository=$CPANEL_REPO_PATH")
+            --data-urlencode "repository_root=$CPANEL_REPO_PATH")
           echo "Resposta: $RESPONSE"
           echo "$RESPONSE" | python3 -c "import sys,json; r=json.load(sys.stdin); exit(0 if r.get('status')==1 else 1)"
 
