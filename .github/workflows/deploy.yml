@@ -17,7 +17,7 @@ jobs:
       - name: Verificar confirmação
         if: github.event.inputs.confirm != 'DEPLOY'
         run: |
-          echo "❌ Confirmação inválida. Digite exatamente DEPLOY para prosseguir."
+          echo "Confirmacao invalida. Digite exatamente DEPLOY para prosseguir."
           exit 1
 
       - name: Checkout do código
@@ -60,7 +60,7 @@ jobs:
           QUEUE_CONNECTION=sync
           EOF
 
-      - name: Gerar chave da aplicação (se necessário)
+      - name: Gerar chave da aplicação
         run: php artisan key:generate --force
 
       - name: Otimizar para produção
@@ -69,25 +69,59 @@ jobs:
           php artisan route:cache
           php artisan view:cache
 
-      - name: Deploy via FTP para HostGator
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          server-dir: ${{ secrets.FTP_PATH }}
-          protocol: ftp
-          port: 21
-          security: loose
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/tests/**
-            **/.env.example
-            **/storage/logs/**
-            **/storage/framework/sessions/**
-            **/storage/framework/cache/data/**
+      - name: Criar arquivo ZIP para deploy
+        run: |
+          zip -r deploy.zip . \
+            --exclude "*.git*" \
+            --exclude "*/.git/*" \
+            --exclude "*/node_modules/*" \
+            --exclude "*/tests/*" \
+            --exclude "*/.env.example" \
+            --exclude "*/storage/logs/*" \
+            --exclude "*/storage/framework/sessions/*" \
+            --exclude "*/storage/framework/cache/data/*" \
+            --exclude "deploy.zip"
+          echo "ZIP criado: $(du -sh deploy.zip | cut -f1)"
 
-      - name: ✅ Deploy concluído
-        run: echo "Deploy realizado com sucesso!"
+      - name: Upload do ZIP via cPanel API
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
+          CPANEL_PASS: ${{ secrets.CPANEL_PASS }}
+          DEPLOY_PATH: ${{ secrets.FTP_PATH }}
+        run: |
+          UPLOAD_RESPONSE=$(curl -sk -u "$CPANEL_USER:$CPANEL_PASS" \
+            "https://$CPANEL_HOST:2083/execute/Fileman/upload_files" \
+            -F "dir=/home1/$CPANEL_USER" \
+            -F "file-1=@deploy.zip")
+          echo "Upload: $UPLOAD_RESPONSE"
+          echo "$UPLOAD_RESPONSE" | python3 -c "import sys,json; r=json.load(sys.stdin); exit(0 if r.get('status')==1 else 1)"
+
+      - name: Extrair ZIP no servidor via cPanel API
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
+          CPANEL_PASS: ${{ secrets.CPANEL_PASS }}
+          DEPLOY_PATH: ${{ secrets.FTP_PATH }}
+        run: |
+          EXTRACT_RESPONSE=$(curl -sk -u "$CPANEL_USER:$CPANEL_PASS" \
+            "https://$CPANEL_HOST:2083/execute/Fileman/extract" \
+            --data-urlencode "dir=/home1/$CPANEL_USER" \
+            --data-urlencode "files=deploy.zip" \
+            --data-urlencode "dest=$DEPLOY_PATH")
+          echo "Extração: $EXTRACT_RESPONSE"
+          echo "$EXTRACT_RESPONSE" | python3 -c "import sys,json; r=json.load(sys.stdin); exit(0 if r.get('status')==1 else 1)"
+
+      - name: Limpar ZIP do servidor
+        env:
+          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+          CPANEL_USER: ${{ secrets.CPANEL_USER }}
+          CPANEL_PASS: ${{ secrets.CPANEL_PASS }}
+        run: |
+          curl -sk -u "$CPANEL_USER:$CPANEL_PASS" \
+            "https://$CPANEL_HOST:2083/execute/Fileman/delete_files" \
+            --data-urlencode "dir=/home1/$CPANEL_USER" \
+            --data-urlencode "files-0=deploy.zip" > /dev/null
+
+      - name: Deploy concluido
+        run: echo "Deploy realizado com sucesso via cPanel API!"
