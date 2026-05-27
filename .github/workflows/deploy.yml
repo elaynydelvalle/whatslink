@@ -87,10 +87,10 @@ jobs:
         env:
           CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
           CPANEL_USER: ${{ secrets.CPANEL_USER }}
-          CPANEL_PASS: ${{ secrets.CPANEL_PASS }}
+          CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
           DEPLOY_PATH: ${{ secrets.FTP_PATH }}
         run: |
-          UPLOAD_RESPONSE=$(curl -sk -u "$CPANEL_USER:$CPANEL_PASS" \
+          UPLOAD_RESPONSE=$(curl -sk -H "Authorization: cpanel $CPANEL_USER:$CPANEL_TOKEN" \
             "https://$CPANEL_HOST:2083/execute/Fileman/upload_files" \
             -F "dir=/home1/$CPANEL_USER" \
             -F "file-1=@deploy.zip")
@@ -101,10 +101,10 @@ jobs:
         env:
           CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
           CPANEL_USER: ${{ secrets.CPANEL_USER }}
-          CPANEL_PASS: ${{ secrets.CPANEL_PASS }}
+          CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
           DEPLOY_PATH: ${{ secrets.FTP_PATH }}
         run: |
-          EXTRACT_RESPONSE=$(curl -sk -u "$CPANEL_USER:$CPANEL_PASS" \
+          EXTRACT_RESPONSE=$(curl -sk -H "Authorization: cpanel $CPANEL_USER:$CPANEL_TOKEN" \
             "https://$CPANEL_HOST:2083/execute/Fileman/extract" \
             --data-urlencode "dir=/home1/$CPANEL_USER" \
             --data-urlencode "files=deploy.zip" \
@@ -116,9 +116,9 @@ jobs:
         env:
           CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
           CPANEL_USER: ${{ secrets.CPANEL_USER }}
-          CPANEL_PASS: ${{ secrets.CPANEL_PASS }}
+          CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
         run: |
-          curl -sk -u "$CPANEL_USER:$CPANEL_PASS" \
+          curl -sk -H "Authorization: cpanel $CPANEL_USER:$CPANEL_TOKEN" \
             "https://$CPANEL_HOST:2083/execute/Fileman/delete_files" \
             --data-urlencode "dir=/home1/$CPANEL_USER" \
             --data-urlencode "files-0=deploy.zip" > /dev/null
