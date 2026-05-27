@@ -23,107 +23,18 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Configurar PHP 8.3
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.3'
-          extensions: mbstring, pdo_mysql, openssl, zip, curl
-
-      - name: Instalar dependências (sem dev)
-        run: composer install --no-dev --optimize-autoloader --no-interaction
-
-      - name: Criar .env de produção
-        env:
-          SECRET_APP_URL: ${{ secrets.APP_URL }}
-          SECRET_APP_KEY: ${{ secrets.APP_KEY }}
-          SECRET_DB_HOST: ${{ secrets.DB_HOST }}
-          SECRET_DB_DATABASE: ${{ secrets.DB_DATABASE }}
-          SECRET_DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          SECRET_DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        run: |
-          cat > .env <<EOF
-          APP_NAME=WhatsLink
-          APP_ENV=production
-          APP_KEY=$SECRET_APP_KEY
-          APP_DEBUG=false
-          APP_URL=$SECRET_APP_URL
-          LOG_CHANNEL=stack
-          LOG_LEVEL=error
-          DB_CONNECTION=mysql
-          DB_HOST=$SECRET_DB_HOST
-          DB_PORT=3306
-          DB_DATABASE=$SECRET_DB_DATABASE
-          DB_USERNAME=$SECRET_DB_USERNAME
-          DB_PASSWORD=$SECRET_DB_PASSWORD
-          SESSION_DRIVER=file
-          CACHE_STORE=file
-          QUEUE_CONNECTION=sync
-          EOF
-
-      - name: Gerar chave da aplicação
-        run: php artisan key:generate --force
-
-      - name: Otimizar para produção
-        run: |
-          php artisan config:cache
-          php artisan route:cache
-          php artisan view:cache
-
-      - name: Criar arquivo ZIP para deploy
-        run: |
-          ZIPNAME="deploy_$(date +%s).zip"
-          echo "ZIPNAME=$ZIPNAME" >> $GITHUB_ENV
-          zip -r "$ZIPNAME" . \
-            --exclude "*.git*" \
-            --exclude "*/.git/*" \
-            --exclude "*/node_modules/*" \
-            --exclude "*/tests/*" \
-            --exclude "*/.env.example" \
-            --exclude "*/storage/logs/*" \
-            --exclude "*/storage/framework/sessions/*" \
-            --exclude "*/storage/framework/cache/data/*" \
-            --exclude "deploy_*.zip"
-          echo "ZIP criado: $(du -sh $ZIPNAME | cut -f1)"
-
-      - name: Upload do ZIP via cPanel API
+      - name: Disparar pull no cPanel Git Version Control
         env:
           CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
           CPANEL_USER: ${{ secrets.CPANEL_USER }}
           CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
-          DEPLOY_PATH: ${{ secrets.FTP_PATH }}
+          CPANEL_REPO_PATH: ${{ secrets.CPANEL_REPO_PATH }}
         run: |
-          UPLOAD_RESPONSE=$(curl -sk -H "Authorization: cpanel $CPANEL_USER:$CPANEL_TOKEN" \
-            "https://$CPANEL_HOST:2083/execute/Fileman/upload_files" \
-            -F "dir=/home1/$CPANEL_USER" \
-            -F "file-1=@$ZIPNAME")
-          echo "Upload: $UPLOAD_RESPONSE"
-          echo "$UPLOAD_RESPONSE" | python3 -c "import sys,json; r=json.load(sys.stdin); exit(0 if r.get('status')==1 else 1)"
-
-      - name: Enviar script de extração via cPanel API
-        env:
-          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
-          CPANEL_USER: ${{ secrets.CPANEL_USER }}
-          CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
-          DEPLOY_PATH: ${{ secrets.FTP_PATH }}
-        run: |
-          PHP_SCRIPT='<?php $z=new ZipArchive; $r=$z->open("/home1/'$CPANEL_USER'/'$ZIPNAME'"); if($r===true){$z->extractTo("'$DEPLOY_PATH'");$z->close();unlink("/home1/'$CPANEL_USER'/'$ZIPNAME'");echo "OK";} else {echo "ERRO:".$r;} unlink(__FILE__);'
-          SAVE_RESPONSE=$(curl -sk -H "Authorization: cpanel $CPANEL_USER:$CPANEL_TOKEN" \
-            "https://$CPANEL_HOST:2083/execute/Fileman/save_file_content" \
-            --data-urlencode "dir=$DEPLOY_PATH" \
-            --data-urlencode "filename=_deploy_extract.php" \
-            --data-urlencode "content=$PHP_SCRIPT" \
-            --data-urlencode "encoding=raw")
-          echo "Script salvo: $SAVE_RESPONSE"
-          echo "$SAVE_RESPONSE" | python3 -c "import sys,json; r=json.load(sys.stdin); exit(0 if r.get('status')==1 else 1)"
-
-      - name: Executar extração no servidor
-        env:
-          SITE_URL: ${{ secrets.APP_URL }}
-        run: |
-          sleep 3
-          RESULT=$(curl -sk "$SITE_URL/_deploy_extract.php")
-          echo "Resultado: $RESULT"
-          if [ "$RESULT" != "OK" ]; then echo "Falha na extração: $RESULT"; exit 1; fi
+          RESPONSE=$(curl -sk -H "Authorization: cpanel $CPANEL_USER:$CPANEL_TOKEN" \
+            "https://$CPANEL_HOST:2083/execute/VersionControl/update" \
+            --data-urlencode "repository=$CPANEL_REPO_PATH")
+          echo "Resposta: $RESPONSE"
+          echo "$RESPONSE" | python3 -c "import sys,json; r=json.load(sys.stdin); exit(0 if r.get('status')==1 else 1)"
 
       - name: Deploy concluido
-        run: echo "Deploy realizado com sucesso via cPanel API!"
+        run: echo "Deploy disparado com sucesso!"
