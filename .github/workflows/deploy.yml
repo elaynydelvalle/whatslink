@@ -71,7 +71,9 @@ jobs:
 
       - name: Criar arquivo ZIP para deploy
         run: |
-          zip -r deploy.zip . \
+          ZIPNAME="deploy_$(date +%s).zip"
+          echo "ZIPNAME=$ZIPNAME" >> $GITHUB_ENV
+          zip -r "$ZIPNAME" . \
             --exclude "*.git*" \
             --exclude "*/.git/*" \
             --exclude "*/node_modules/*" \
@@ -80,19 +82,8 @@ jobs:
             --exclude "*/storage/logs/*" \
             --exclude "*/storage/framework/sessions/*" \
             --exclude "*/storage/framework/cache/data/*" \
-            --exclude "deploy.zip"
-          echo "ZIP criado: $(du -sh deploy.zip | cut -f1)"
-
-      - name: Limpar ZIPs antigos do servidor
-        env:
-          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
-          CPANEL_USER: ${{ secrets.CPANEL_USER }}
-          CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
-        run: |
-          curl -sk -H "Authorization: cpanel $CPANEL_USER:$CPANEL_TOKEN" \
-            "https://$CPANEL_HOST:2083/execute/Fileman/delete_files" \
-            --data-urlencode "dir=/home1/$CPANEL_USER" \
-            --data-urlencode "files-0=deploy.zip" > /dev/null || true
+            --exclude "deploy_*.zip"
+          echo "ZIP criado: $(du -sh $ZIPNAME | cut -f1)"
 
       - name: Upload do ZIP via cPanel API
         env:
@@ -104,7 +95,7 @@ jobs:
           UPLOAD_RESPONSE=$(curl -sk -H "Authorization: cpanel $CPANEL_USER:$CPANEL_TOKEN" \
             "https://$CPANEL_HOST:2083/execute/Fileman/upload_files" \
             -F "dir=/home1/$CPANEL_USER" \
-            -F "file-1=@deploy.zip")
+            -F "file-1=@$ZIPNAME")
           echo "Upload: $UPLOAD_RESPONSE"
           echo "$UPLOAD_RESPONSE" | python3 -c "import sys,json; r=json.load(sys.stdin); exit(0 if r.get('status')==1 else 1)"
 
@@ -115,7 +106,7 @@ jobs:
           CPANEL_TOKEN: ${{ secrets.CPANEL_TOKEN }}
           DEPLOY_PATH: ${{ secrets.FTP_PATH }}
         run: |
-          PHP_SCRIPT='<?php $z=new ZipArchive; $r=$z->open("/home1/'$CPANEL_USER'/deploy.zip"); if($r===true){$z->extractTo("'$DEPLOY_PATH'");$z->close();unlink("/home1/'$CPANEL_USER'/deploy.zip");echo "OK";} else {echo "ERRO:".$r;} unlink(__FILE__);'
+          PHP_SCRIPT='<?php $z=new ZipArchive; $r=$z->open("/home1/'$CPANEL_USER'/'$ZIPNAME'"); if($r===true){$z->extractTo("'$DEPLOY_PATH'");$z->close();unlink("/home1/'$CPANEL_USER'/'$ZIPNAME'");echo "OK";} else {echo "ERRO:".$r;} unlink(__FILE__);'
           SAVE_RESPONSE=$(curl -sk -H "Authorization: cpanel $CPANEL_USER:$CPANEL_TOKEN" \
             "https://$CPANEL_HOST:2083/execute/Fileman/save_file_content" \
             --data-urlencode "dir=$DEPLOY_PATH" \
