@@ -8,6 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('links')) return;
         Schema::create('links', function (Blueprint $table) {
             $table->string('id')->primary();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
