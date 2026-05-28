@@ -1,16 +1,14 @@
 <?php
 putenv('HOME=/home1/chromo20');
-putenv('COMPOSER_HOME=/home1/chromo20/.composer');
-$cmds = [
-    'config:clear',
-    'route:clear',
-    'view:clear',
-    'cache:clear',
-];
-chdir('/home1/chromo20/whatslink');
-foreach ($cmds as $cmd) {
-    $out = [];
-    exec("/usr/local/bin/php artisan $cmd 2>&1", $out);
-    echo "<b>$cmd:</b> " . implode(' ', $out) . "<br>";
+require '/home1/chromo20/whatslink/vendor/autoload.php';
+$app = require '/home1/chromo20/whatslink/bootstrap/app.php';
+$app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
+
+$user = \App\Models\User::where('email', 'elaynydelvalle@gmail.com')->first();
+if ($user) {
+    $user->password = \Illuminate\Support\Facades\Hash::make('Whatslink@2026');
+    $user->save();
+    echo 'Senha resetada! Email: ' . $user->email;
+} else {
+    echo 'Usuário não encontrado.';
 }
-echo "Concluído!";
