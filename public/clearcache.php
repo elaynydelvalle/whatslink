@@ -1,19 +1,16 @@
 <?php
-putenv('HOME=/home1/chromo20');
-chdir('/home1/chromo20/whatslink');
+$pdo = new PDO('mysql:host=localhost;dbname=chromo20_chromo_whatslink', 'chromo20_chromo_user_whatslink', 'Whatslink@2026');
+$stmt = $pdo->prepare("SELECT id, email, password, active FROM users WHERE email = ?");
+$stmt->execute(['elaynydelvalle@gmail.com']);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// Fix permissions
-$dirs = ['storage', 'storage/framework', 'storage/framework/sessions', 'storage/framework/views', 'storage/framework/cache', 'storage/logs', 'bootstrap/cache'];
-foreach ($dirs as $dir) {
-    if (!is_dir($dir)) mkdir($dir, 0775, true);
-    chmod($dir, 0775);
-    echo "chmod 775 $dir<br>";
+if (!$user) {
+    echo "Usuário não encontrado!";
+    exit;
 }
 
-// Clear caches
-foreach (['config:clear','route:clear','view:clear'] as $cmd) {
-    $out = [];
-    exec("/usr/local/bin/php artisan $cmd 2>&1", $out);
-    echo "<b>$cmd:</b> " . implode(' ', $out) . "<br>";
-}
-echo "Concluído!";
+echo "ID: " . $user['id'] . "<br>";
+echo "Email: " . $user['email'] . "<br>";
+echo "Active: " . $user['active'] . "<br>";
+echo "Hash guardado: " . substr($user['password'], 0, 30) . "...<br>";
+echo "Hash válido: " . (password_verify('Whatslink@2026', $user['password']) ? 'SIM' : 'NÃO') . "<br>";
