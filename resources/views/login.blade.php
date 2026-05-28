@@ -86,6 +86,9 @@
         </div>
         <button type="submit" class="btn btn-primary">Entrar na conta</button>
         <div id="errLogin" class="error-msg hidden"></div>
+        <div style="text-align:center;margin-top:12px">
+          <a href="{{ url('/forgot-password') }}" style="font-size:13px;color:#6b7280;text-decoration:none">Esqueci minha senha</a>
+        </div>
       </form>
 
       <form id="formRegister" class="hidden" autocomplete="off">
