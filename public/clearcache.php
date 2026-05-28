@@ -1,14 +1,6 @@
 <?php
-putenv('HOME=/home1/chromo20');
-require '/home1/chromo20/whatslink/vendor/autoload.php';
-$app = require '/home1/chromo20/whatslink/bootstrap/app.php';
-$app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
-
-$user = \App\Models\User::where('email', 'elaynydelvalle@gmail.com')->first();
-if ($user) {
-    $user->password = \Illuminate\Support\Facades\Hash::make('Whatslink@2026');
-    $user->save();
-    echo 'Senha resetada! Email: ' . $user->email;
-} else {
-    echo 'Usuário não encontrado.';
-}
+$pdo = new PDO('mysql:host=localhost;dbname=chromo20_chromo_whatslink', 'chromo20_chromo_user_whatslink', 'Whatslink@2026');
+$hash = password_hash('Whatslink@2026', PASSWORD_BCRYPT);
+$stmt = $pdo->prepare("UPDATE users SET password = ? WHERE email = ?");
+$stmt->execute([$hash, 'elaynydelvalle@gmail.com']);
+echo 'Atualizado: ' . $stmt->rowCount() . ' registro(s).';
