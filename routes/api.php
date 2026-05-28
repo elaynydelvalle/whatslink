@@ -14,7 +14,7 @@ Route::post('auth/google',   [AuthController::class, 'google']);
 Route::get('plans',          [PlanController::class, 'index']);
 
 Route::post('links/click/{id}', [LinkController::class, 'click']);
-Route::get('links/url/{id',     [LinkController::class, 'getUrl']);
+Route::get('links/url/{id}',    [LinkController::class, 'getUrl']);
 
 // ── Autenticado ───────────────────────────────────────────────
 Route::middleware('auth')->group(function () {
