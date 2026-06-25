@@ -7,4 +7,4 @@ deployment:
     - /usr/local/bin/php artisan route:cache
     - /usr/local/bin/php artisan view:cache
     - /usr/local/bin/php artisan migrate --force
-    - chmod -R 775 storage bootstrap/cache
+    - find storage bootstrap/cache -type d -exec chmod 775 {} \;
