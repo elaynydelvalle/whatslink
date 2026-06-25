@@ -2,9 +2,6 @@
    WhatsLink — app.js  (Laravel backend)
    ============================================================ */
 
-// ── Config ────────────────────────────────────────────────────
-const GOOGLE_CLIENT_ID = ''; // Cole seu Client ID aqui quando ativar
-
 // ── CSRF Token (necessário para Laravel) ─────────────────────
 function getCsrfToken() {
   return document.querySelector('meta[name="csrf-token"]')?.content || '';
@@ -36,7 +33,6 @@ async function getSession()            { const r = await api('GET', 'auth/me'); 
 async function doLogin(email, pass)    { return api('POST', 'auth/login',    { email, password: pass }); }
 async function doRegister(n,e,p,p2)   { return api('POST', 'auth/register', { name:n, email:e, password:p, password2:p2 }); }
 async function doLogout()              { await api('POST', 'auth/logout'); window.location.href = '/login'; }
-async function googleAuth(email,name,google_id) { return api('POST', 'auth/google', { email, name, google_id }); }
 
 // ── Links helpers ──────────────────────────────────────────────
 async function getLinks(q = '')        { const r = await api('GET', `links${q ? '?q='+encodeURIComponent(q) : ''}`); return r?.ok ? r.data : []; }
@@ -50,6 +46,7 @@ async function getPlans()              { const r = await api('GET', 'plans'); re
 async function savePlan(data, id)      { return id ? api('PUT', `plans/${id}`, data) : api('POST', 'plans', data); }
 async function deletePlan(id)          { return api('DELETE', `plans/${id}`); }
 async function togglePlan(id)          { return api('POST',   `plans/${id}/toggle`); }
+async function subscribePlan(id, cpfCnpj) { return api('POST', `plans/${id}/subscribe`, { cpf_cnpj: cpfCnpj }); }
 
 // ── Utils ─────────────────────────────────────────────────────
 function escHtml(s)  { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -76,7 +73,7 @@ function buildWaLink(phone, text) {
   return `https://wa.me/${f}?text=${encodeURIComponent(text)}`;
 }
 function buildTrackUrl(linkId) {
-  return `${SITE_URL}l/${encodeURIComponent(linkId)}`;
+  return `${window.location.origin}/redirect?lid=${encodeURIComponent(linkId)}`;
 }
 function qrUrl(text) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(text)}`;
@@ -96,17 +93,6 @@ function insertFormat(textarea, type) {
   textarea.selectionStart = s+1; textarea.selectionEnd = e+1;
   textarea.focus(); textarea.dispatchEvent(new Event('input'));
 }
-
-// ── Google Sign-In ────────────────────────────────────────────
-window.handleGoogleLogin = async function(response) {
-  try {
-    const b64  = response.credential.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
-    const info = JSON.parse(atob(b64));
-    const r    = await googleAuth(info.email.toLowerCase(), info.name, info.sub);
-    if (!r?.ok) { toast(r?.error || 'Erro ao autenticar com Google.', 'error'); return; }
-    window.location.href = r.data.role === 'admin' ? '/admin' : '/dashboard';
-  } catch(e) { toast('Erro ao autenticar com Google.', 'error'); }
-};
 
 // ═══════════════════════════════════════════════════════════
 //  LANDING PAGE
@@ -136,23 +122,6 @@ async function initLanding() {
 async function initLogin() {
   const s = await getSession();
   if (s) { window.location.href = s.role === 'admin' ? '/admin' : '/dashboard'; return; }
-
-  // Google button
-  if (GOOGLE_CLIENT_ID) {
-    const tryInit = () => {
-      if (typeof google === 'undefined') { setTimeout(tryInit, 300); return; }
-      google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: window.handleGoogleLogin });
-      google.accounts.id.renderButton(document.getElementById('googleBtnWrap'), {
-        type:'standard', theme:'filled_blue', size:'large', text:'continue_with', shape:'rectangular', width:360,
-      });
-      const fb = document.getElementById('googleFallbackBtn');
-      if (fb) fb.style.display = 'none';
-    };
-    tryInit();
-  } else {
-    const wrap = document.getElementById('googleBtnWrap');
-    if (wrap) wrap.style.display = 'none';
-  }
 
   // Tabs
   const tabLogin = document.getElementById('tabLogin');
@@ -212,13 +181,14 @@ async function initDashboard() {
   document.getElementById('btnLogout').addEventListener('click', doLogout);
 
   // Sidebar
-  const panels = { overview: 'panelOverview', create: 'panelCreate', list: 'panelList' };
+  const panels = { overview: 'panelOverview', create: 'panelCreate', list: 'panelList', billing: 'panelBilling' };
   function showPanel(name) {
     document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
     document.querySelector(`.sidebar-item[data-panel="${name}"]`)?.classList.add('active');
     Object.entries(panels).forEach(([k, id]) => document.getElementById(id)?.classList.toggle('hidden', k !== name));
     if (name === 'list')     renderList();
     if (name === 'overview') renderOverview();
+    if (name === 'billing')  renderBilling();
   }
   window._showPanel = showPanel;
   document.querySelectorAll('.sidebar-item').forEach(item => item.addEventListener('click', () => showPanel(item.dataset.panel)));
@@ -369,6 +339,66 @@ async function initDashboard() {
       if (ph) ph.addEventListener('input', e => { e.target.value = formatPhone(e.target.value); });
     });
   }
+
+  // ── Billing / Planos ────────────────────────────────────────
+  let pendingPlanId = null;
+
+  async function renderBilling() {
+    const myPlan = session.plan_name || 'Gratuito';
+    document.getElementById('currentPlanLabel').innerHTML = `Você está no plano <strong>${escHtml(myPlan)}</strong>.`;
+
+    const plans = await getPlans();
+    const cont  = document.getElementById('billingPlanCards');
+    cont.innerHTML = plans.map(p => {
+      const isCurrent = p.name === myPlan;
+      const isFree    = Number(p.price) <= 0;
+      return `<div class="plan-card ${p.highlighted?'plan-highlighted':''}">
+        ${p.highlighted?'<div class="plan-popular-badge">⭐ Mais popular</div>':''}
+        <div class="plan-name">${escHtml(p.name)}</div>
+        <div class="plan-price">${isFree?'Grátis':'R$ '+Number(p.price).toFixed(2).replace('.',',')+'/mês'}</div>
+        <ul class="plan-features-list">${(p.features||[]).map(f=>`<li>✓ ${escHtml(f)}</li>`).join('')}</ul>
+        <button class="btn ${isCurrent?'btn-secondary':'btn-primary'} btn-full" ${isCurrent?'disabled':''} onclick="window._startSubscribe('${p.id}')">
+          ${isCurrent ? 'Plano atual' : (isFree ? 'Mudar para este plano' : (p.cta||'Assinar'))}
+        </button>
+      </div>`;
+    }).join('');
+  }
+
+  window._startSubscribe = async (planId) => {
+    const plans = await getPlans();
+    const plan  = plans.find(p => p.id === planId);
+    if (!plan) return;
+
+    if (Number(plan.price) <= 0) {
+      toast('Plano gratuito ainda não pode ser trocado automaticamente. Fale com o suporte.', 'error');
+      return;
+    }
+
+    pendingPlanId = planId;
+    document.getElementById('cpfInput').value = '';
+    document.getElementById('cpfModal').classList.remove('hidden');
+  };
+
+  document.getElementById('cpfModalClose')?.addEventListener('click', () => document.getElementById('cpfModal').classList.add('hidden'));
+  document.getElementById('boletoModalClose')?.addEventListener('click', () => document.getElementById('boletoModal').classList.add('hidden'));
+
+  document.getElementById('btnConfirmSubscribe')?.addEventListener('click', async () => {
+    const cpf = document.getElementById('cpfInput').value.trim();
+    if (!cpf) { toast('Informe o CPF ou CNPJ.', 'error'); return; }
+
+    const btn = document.getElementById('btnConfirmSubscribe');
+    btn.disabled = true; btn.textContent = 'Gerando boleto...';
+    const r = await subscribePlan(pendingPlanId, cpf);
+    btn.disabled = false; btn.textContent = 'Gerar boleto';
+
+    if (!r?.ok) { toast(r?.error || 'Erro ao gerar boleto.', 'error'); return; }
+
+    document.getElementById('cpfModal').classList.add('hidden');
+    document.getElementById('boletoDueDate').textContent = r.data.due_date || '-';
+    document.getElementById('boletoAmount').textContent  = 'R$ ' + Number(r.data.amount).toFixed(2).replace('.',',');
+    document.getElementById('boletoLink').href = r.data.boleto_url || r.data.invoice_url || '#';
+    document.getElementById('boletoModal').classList.remove('hidden');
+  });
 
   // ── QR Modal ──────────────────────────────────────────────
   let _qrData = null;

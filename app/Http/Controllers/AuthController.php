@@ -17,7 +17,7 @@ class AuthController extends Controller
         }
         $u = Auth::user();
         return response()->json(['ok' => true, 'data' => [
-            'id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'role' => $u->role,
+            'id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'role' => $u->role, 'plan_name' => $u->plan_name,
         ]]);
     }
 
@@ -70,42 +70,6 @@ class AuthController extends Controller
         ]);
 
         Auth::login($user);
-        $request->session()->regenerate();
-
-        return response()->json(['ok' => true, 'data' => [
-            'id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'role' => $user->role,
-        ]]);
-    }
-
-    public function google(Request $request)
-    {
-        $email = strtolower(trim($request->input('email', '')));
-        $name  = trim($request->input('name', ''));
-        $gid   = trim($request->input('google_id', ''));
-
-        if (!$email || !$name) return $this->fail('Dados do Google inválidos.');
-
-        $adminEmails = ['elaine@chromotech.com.br'];
-
-        $user = User::where('email', $email)->first();
-
-        if (!$user) {
-            $role = in_array($email, $adminEmails) ? 'admin' : 'user';
-            $user = User::create([
-                'name'      => $name,
-                'email'     => $email,
-                'google_id' => $gid,
-                'role'      => $role,
-                'plan_name' => $role === 'admin' ? null : 'Gratuito',
-                'active'    => true,
-            ]);
-        } else {
-            if (!$user->active) return $this->fail('Conta desativada.');
-            $role = in_array($email, $adminEmails) ? 'admin' : $user->role;
-            $user->update(['name' => $name, 'google_id' => $gid, 'role' => $role]);
-        }
-
-        Auth::login($user, true);
         $request->session()->regenerate();
 
         return response()->json(['ok' => true, 'data' => [

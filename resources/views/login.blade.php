@@ -6,7 +6,6 @@
   <title>WhatsLink — Entrar</title>
   <link rel="stylesheet" href="{{ asset('css/styles.css') }}">
   <meta name="csrf-token" content="{{ csrf_token() }}">
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="page-login" data-page="login">
 
@@ -44,24 +43,15 @@
         <p>Bem-vindo de volta ao WhatsLink</p>
       </div>
 
-      <div id="googleSignInWrap" class="google-signin-wrap">
-        <div id="googleBtnWrap" style="display:flex;justify-content:center"></div>
-        <button id="googleFallbackBtn" class="btn-google-main" onclick="handleGoogleFallback()">
-          <svg width="20" height="20" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
-            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
-            <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
-            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
-          </svg>
-          Continuar com Google
-        </button>
-        <div id="googleSetupNotice" class="google-setup-notice hidden">
-          <span>⚙️</span>
-          <span>Google Sign-In não configurado. <a href="#" onclick="document.getElementById('tabLogin').click();return false">Use e-mail e senha</a>.</span>
+      @if(app()->isLocal())
+        <div class="quick-access-box">
+          <p class="quick-access-title">⚡ Acesso rápido (ambiente local)</p>
+          <div class="quick-access-btns">
+            <button type="button" class="btn-quick-access user" id="btnQuickUser">👤 Entrar como usuário</button>
+            <button type="button" class="btn-quick-access dev" id="btnQuickDev">🛠️ Entrar como dev</button>
+          </div>
         </div>
-      </div>
-
-      <div class="divider"><span>ou entre com e-mail</span></div>
+      @endif
 
       <div class="auth-tabs">
         <button class="auth-tab active" id="tabLogin">Entrar</button>
@@ -128,11 +118,13 @@
         ? '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
         : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
     });
-    window.handleGoogleFallback = function() {
-      if (typeof GOOGLE_CLIENT_ID !== 'undefined' && GOOGLE_CLIENT_ID) return;
-      document.getElementById('googleSetupNotice').classList.remove('hidden');
-      document.getElementById('googleFallbackBtn').classList.add('hidden');
-    };
+    function quickAccess(email, pass) {
+      document.getElementById('loginEmail').value = email;
+      document.getElementById('loginPass').value = pass;
+      document.getElementById('formLogin').dispatchEvent(new Event('submit', { cancelable: true }));
+    }
+    document.getElementById('btnQuickUser')?.addEventListener('click', () => quickAccess('user@whatslink.com', '123456'));
+    document.getElementById('btnQuickDev')?.addEventListener('click', () => quickAccess('dev@whatslink.com', '123456'));
   </script>
 </body>
 </html>

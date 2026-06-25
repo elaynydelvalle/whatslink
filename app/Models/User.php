@@ -10,7 +10,7 @@ class User extends Authenticatable
 {
     use Notifiable, CanResetPassword;
 
-    protected $fillable = ['name', 'email', 'password', 'google_id', 'role', 'plan_name', 'active'];
+    protected $fillable = ['name', 'email', 'password', 'google_id', 'role', 'plan_name', 'active', 'cpf_cnpj', 'asaas_customer_id'];
 
     protected $hidden = ['password'];
 
@@ -25,6 +25,11 @@ class User extends Authenticatable
     public function links()
     {
         return $this->hasMany(Link::class);
+    }
+
+    public function charges()
+    {
+        return $this->hasMany(Charge::class);
     }
 
     public function isAdmin(): bool

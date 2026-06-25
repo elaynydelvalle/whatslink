@@ -110,6 +110,16 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .form-header h2 { font-size: 1.75rem; font-weight: 800; color: var(--text); margin-bottom: 6px; }
 .form-header p  { color: var(--text-muted); font-size: .95rem; }
 
+/* Quick access (local dev only) */
+.quick-access-box { background: #fffbeb; border: 1.5px dashed #f59e0b; border-radius: var(--radius); padding: 14px; margin-bottom: 20px; }
+.quick-access-title { font-size: .8rem; font-weight: 700; color: #92400e; margin-bottom: 10px; }
+.quick-access-btns { display: flex; gap: 8px; }
+.btn-quick-access { flex: 1; padding: 9px; border-radius: var(--radius-sm); font-size: .8rem; font-weight: 600; cursor: pointer; border: 1.5px solid transparent; transition: var(--transition); }
+.btn-quick-access.user { background: #e0f2fe; color: #0369a1; border-color: #7dd3fc; }
+.btn-quick-access.user:hover { background: #0369a1; color: #fff; }
+.btn-quick-access.dev { background: #f3e8ff; color: #7e22ce; border-color: #d8b4fe; }
+.btn-quick-access.dev:hover { background: #7e22ce; color: #fff; }
+
 /* Tabs */
 .auth-tabs { display: flex; gap: 4px; background: var(--bg); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 28px; }
 .auth-tab {
@@ -683,6 +693,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .landing-nav-links a { color: var(--text-muted); text-decoration: none; font-size: .9rem; font-weight: 500; transition: var(--transition); }
 .landing-nav-links a:hover { color: var(--green-dark); }
 .landing-nav-cta { display: flex; gap: 10px; align-items: center; }
+.btn-login-access { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; background: var(--bg); color: var(--green-dark); border: 1.5px solid var(--green); border-radius: var(--radius); font-size: .875rem; font-weight: 600; text-decoration: none; transition: var(--transition); }
+.btn-login-access:hover { background: var(--green); color: #fff; }
 
 /* Hero */
 .hero-section {
@@ -708,6 +720,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .hero-btns { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 28px; }
 .hero-btn-primary  { padding: 14px 28px; font-size: 1rem; box-shadow: 0 4px 16px rgba(37,211,102,.3); }
 .hero-btn-secondary{ padding: 14px 24px; font-size: 1rem; }
+.hero-already-have-account { font-size: .875rem; color: var(--text-muted); margin-bottom: 28px; }
+.hero-already-have-account a { color: var(--green-dark); font-weight: 600; text-decoration: none; }
+.hero-already-have-account a:hover { text-decoration: underline; }
 .hero-social-proof { display: flex; align-items: center; gap: 12px; }
 .social-avatars { display: flex; }
 .social-avatars span { width: 30px; height: 30px; background: var(--green); border-radius: 50%; display: grid; place-items: center; font-size: .75rem; border: 2px solid #fff; margin-left: -6px; }

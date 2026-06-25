@@ -28,8 +28,11 @@
         <a href="#pricing">Planos</a>
       </div>
       <div class="landing-nav-cta">
-        <a href="{{ url('/login') }}" class="btn btn-secondary" style="padding:9px 18px">Entrar</a>
-        <a href="{{ url('/login') }}" class="btn btn-primary"   style="padding:9px 18px">Começar grátis</a>
+        <a href="{{ url('/login') }}" class="btn btn-login-access">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          Acessar
+        </a>
+        <a href="{{ url('/login') }}" class="btn btn-primary" style="padding:9px 18px">Começar grátis</a>
       </div>
     </div>
   </nav>
@@ -44,6 +47,7 @@
         <a href="{{ url('/login') }}" class="btn btn-primary hero-btn-primary">Começar grátis agora</a>
         <a href="#how" class="btn btn-secondary hero-btn-secondary">Ver como funciona</a>
       </div>
+      <p class="hero-already-have-account">Já tem conta? <a href="{{ url('/login') }}">Acessar agora →</a></p>
       <div class="hero-social-proof">
         <div class="social-avatars">
           <span>👤</span><span>👤</span><span>👤</span><span>👤</span>

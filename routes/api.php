@@ -2,19 +2,24 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BillingController;
 use App\Http\Controllers\LinkController;
 use App\Http\Controllers\PlanController;
 use Illuminate\Support\Facades\Route;
 
 // ── Públicas ──────────────────────────────────────────────────
-Route::post('auth/login',    [AuthController::class, 'login']);
-Route::post('auth/register', [AuthController::class, 'register']);
-Route::post('auth/google',   [AuthController::class, 'google']);
+Route::post('auth/login',    [AuthController::class, 'login'])->middleware('throttle:5,1');
+Route::post('auth/register', [AuthController::class, 'register'])->middleware('throttle:5,1');
+// auth/google desativada: o backend confiava em email/nome enviados pelo cliente sem
+// verificar a assinatura do token do Google, permitindo sequestro de qualquer conta.
+// Reativar somente após validar o ID token no servidor (ex.: endpoint tokeninfo do Google).
 
 Route::get('plans',          [PlanController::class, 'index']);
 
 Route::post('links/click/{id}', [LinkController::class, 'click']);
 Route::get('links/url/{id}',    [LinkController::class, 'getUrl']);
+
+Route::post('webhooks/asaas', [BillingController::class, 'webhook'])->middleware('throttle:60,1');
 
 // ── Autenticado ───────────────────────────────────────────────
 Route::middleware('auth')->group(function () {
@@ -25,6 +30,8 @@ Route::middleware('auth')->group(function () {
     Route::post('links',          [LinkController::class, 'store']);
     Route::put('links/{id}',      [LinkController::class, 'update']);
     Route::delete('links/{id}',   [LinkController::class, 'destroy']);
+
+    Route::post('plans/{id}/subscribe', [BillingController::class, 'subscribe'])->middleware('throttle:10,1');
 
     // ── Admin ─────────────────────────────────────────────────
     Route::middleware('admin')->group(function () {

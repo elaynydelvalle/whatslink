@@ -59,6 +59,8 @@
       <div class="sidebar-section-label" style="margin-top:8px">Links</div>
       <button class="sidebar-item" data-panel="create"><span class="s-icon">✚</span> Criar Link</button>
       <button class="sidebar-item" data-panel="list"><span class="s-icon">📋</span> Meus Links</button>
+      <div class="sidebar-section-label" style="margin-top:8px">Conta</div>
+      <button class="sidebar-item" data-panel="billing"><span class="s-icon">💳</span> Meu Plano</button>
     </aside>
 
     <div class="admin-content">
@@ -168,6 +170,38 @@
         </div>
       </div>
 
+      <div id="panelBilling" class="admin-panel hidden" style="margin-top:0">
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-title">💳 Meu plano atual</div>
+          <p id="currentPlanLabel" class="text-muted">Carregando...</p>
+        </div>
+        <div class="plan-cards-grid" id="billingPlanCards"><p class="text-muted">Carregando planos...</p></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="cpfModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <button class="modal-close" id="cpfModalClose">✕</button>
+      <h3>Confirmar dados para o boleto</h3>
+      <p class="text-muted" style="margin-bottom:16px">Informe seu CPF ou CNPJ para gerarmos a cobrança no Asaas.</p>
+      <div class="form-group">
+        <label class="form-label" for="cpfInput">CPF ou CNPJ</label>
+        <input class="form-input" id="cpfInput" placeholder="000.000.000-00">
+      </div>
+      <button class="btn btn-primary" style="width:100%" id="btnConfirmSubscribe">Gerar boleto</button>
+    </div>
+  </div>
+
+  <div id="boletoModal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <button class="modal-close" id="boletoModalClose">✕</button>
+      <h3>📄 Boleto gerado!</h3>
+      <p class="text-muted">Vencimento: <strong id="boletoDueDate"></strong></p>
+      <p class="text-muted">Valor: <strong id="boletoAmount"></strong></p>
+      <a id="boletoLink" href="#" target="_blank" class="btn btn-primary" style="width:100%;margin-top:16px">Abrir boleto para pagamento →</a>
+      <p class="text-muted" style="font-size:.8rem;margin-top:12px">Após o pagamento ser confirmado pelo Asaas, seu plano é atualizado automaticamente.</p>
     </div>
   </div>
 
